@@ -1,4 +1,4 @@
-import shutil
+import os
 import subprocess
 import uuid
 from typing import Dict
@@ -6,18 +6,26 @@ from typing import Dict
 BASE_REPO_DIR = 'tmp'
 
 
-def get_commit_list(url: str, timeout=120) -> Dict[str, str]:
-    git_directory = f'{BASE_REPO_DIR}/{uuid.uuid5(uuid.NAMESPACE_URL, url)}'
-    try:
-        subprocess.run(['git', 'clone', '--bare', url, git_directory],
-                       stderr=subprocess.DEVNULL, text=True, check=True)
-        git_log_output = subprocess.check_output(
-            ['git', 'log', '--full-history', '--no-decorate', '--oneline'],
-            text=True, cwd=git_directory)
-    except:
-        exit()  # Abort on any error problem with git
-    finally:
-        shutil.rmtree(git_directory)
+def repo_uuid(url: str) -> uuid.UUID:
+    return uuid.uuid5(uuid.NAMESPACE_URL, url)
+
+
+def repo_directory(url: str) -> str:
+    return f'{BASE_REPO_DIR}/{repo_uuid(url)}'
+
+
+def fetch_repo(url: str):
+    subprocess.run(['git', 'clone', '--bare', url, repo_directory(url)],
+                   stderr=subprocess.DEVNULL, text=True, check=True)
+
+
+def get_commit_list(url: str) -> Dict[str, str]:
+    if not os.path.isdir(repo_directory(url)):
+        fetch_repo(url)
+
+    git_log_output = subprocess.check_output(
+        ['git', 'log', '--full-history', '--no-decorate', '--oneline'],
+        text=True, cwd=repo_directory(url))
 
     commits = {}
     for line in git_log_output.split('\n'):
