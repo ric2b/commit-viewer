@@ -8,6 +8,9 @@ from input.input_base_class import CommitViewerInput
 
 BASE_REPO_DIR = '.commit_viewer/repos'
 
+# todo: The persistence method used (local bare repo's) isn't safe for concurrency.
+# A lockfile is a possible solution if running multiple instances at a time is required.
+
 
 class GitCliInput(CommitViewerInput):
     @staticmethod
@@ -19,7 +22,7 @@ class GitCliInput(CommitViewerInput):
         return f'{BASE_REPO_DIR}/{cls._url_uuid(url)}'
 
     @classmethod
-    def _fetch_repo(cls, url: str, clean_dir: bool=True):
+    def _fetch_repo(cls, url: str, clean_dir: bool=False):
         """
         Fetched a repo at the given url to a local directory via git clone --bare.
         :param url: the url of the repo on the remote

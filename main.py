@@ -8,14 +8,16 @@ from input.github_api import GitHubInput
 if __name__ == '__main__':
     import argparse
 
+    # configuration of the CLI for the project
     parser = argparse.ArgumentParser(description="Fetch a github repo's commit list.")
     parser.add_argument(dest='url', type=str, help='the url of the github repo')
-    parser.add_argument('--log', type=str, default='WARNING', help='logger level')
+    parser.add_argument('--log', type=str, default='WARNING', help='logger level',
+                        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'])
     parser.add_argument('--timeout', type=int, default=120, help='request timeout (sec)')
-    parser.add_argument('--input', type=str, choices=['github', 'git'], help='force input')
+    parser.add_argument('--input', type=str, help='force input', choices=['github', 'git'])
     args = parser.parse_args()
 
-    logging.basicConfig(level=args.log.upper())
+    logging.basicConfig(level=args.log)
 
     url_parts = urlparse(args.url)
     if not all([url_parts.scheme, url_parts.netloc, url_parts.path]):
