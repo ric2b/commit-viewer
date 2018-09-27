@@ -1,5 +1,5 @@
 from typing import Dict
-from urllib.parse import ParseResult
+from urllib.parse import urlparse
 
 import requests
 
@@ -10,17 +10,19 @@ API_URL = 'https://api.github.com/repos'
 
 class GitHubInput(CommitViewerInput):
     @classmethod
-    def get_commit_list(cls, url_parts: ParseResult, timeout: int=120) -> Dict[str, str]:
+    def get_commit_list(cls, url: str, timeout: int=120) -> Dict[str, str]:
         """
         Fetches a repo's commit list via the GitHub API
 
         The domain isn't checked to allow usage on other (future?) valid github domains.
         ("Be liberal in what you accept from others (...)")
 
-        :param url_parts: a parsed url of a GitHub repo
+        :param url: a url of a GitHub repo
         :param timeout: optional argument for the timeout on each request
         :return: a dictionary with commit hashes as keys and messages as values
         """
+        url_parts = urlparse(url)
+
         commits = {}
         next_page = f'{API_URL}{url_parts.path}/commits'
         while next_page:

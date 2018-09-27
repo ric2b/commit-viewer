@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     if args.input == 'github':
         logging.info('Fetching via GitHub API')
-        commit_list = GitHubInput.get_commit_list(url_parts, args.timeout)
+        commit_list = GitHubInput.get_commit_list(args.url, args.timeout)
 
     elif args.input == 'git':
         logging.info('Fetching via git CLI')
