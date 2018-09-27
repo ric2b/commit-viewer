@@ -2,14 +2,20 @@ import os
 import shutil
 import subprocess
 import uuid
-from typing import Dict, Any, List
+from typing import Dict, List
 
+from input.commit import Commit, Person
 from input.input_base_class import CommitViewerInput
 
 BASE_REPO_DIR = '.commit_viewer/repos'
 
-# todo: The persistence method used (local bare repo's) isn't safe for concurrency.
+# Note: The persistence method used (local bare repo's) isn't safe for concurrency.
 # A lockfile is a possible solution if running multiple instances at a time is required.
+
+SHOW_FORMAT = 'sha %H%ntree %T%n' \
+              'author_name %an%nauthor_email %ae%nauthor_date %ad%n' \
+              'committer_name %cn%ncommitter_email %ce%ncommitter_date %cd%n' \
+              'parents %P%n%n%B'
 
 
 class GitCliInput(CommitViewerInput):
@@ -34,7 +40,7 @@ class GitCliInput(CommitViewerInput):
                        stderr=subprocess.DEVNULL, check=True)
 
     @staticmethod
-    def _parse_git_show(git_show_output: List[str]) -> Dict[str, str]:
+    def _parse_git_show(git_show_output: List[str]) -> Commit:
         """
         Parses the output of git show (as a list of strings/lines) with 'fuller' format
         into a dictionary with the commit information and returns it.
@@ -45,7 +51,7 @@ class GitCliInput(CommitViewerInput):
         if len(git_show_output) == 0:
             raise ValueError
 
-        commit: Dict[str, str] = {}
+        commit_data: Dict[str, str] = {}
         break_line = None
         for line_number, line in enumerate(git_show_output):
             if not line:
@@ -53,15 +59,32 @@ class GitCliInput(CommitViewerInput):
                 break
 
             line_parts = line.split(maxsplit=1)
-            commit[line_parts[0].rstrip(':')] = line_parts[1]
+            commit_data[line_parts[0]] = line_parts[1] if len(line_parts) > 1 else ''
 
         message_lines = [line.lstrip() for line in git_show_output[break_line + 1:]]
-        commit['Message'] = '\n'.join(message_lines)
+        commit_data['message'] = '\n'.join(message_lines)
+
+        commit = Commit(
+            sha=commit_data['sha'],
+            tree=commit_data['tree'],
+            author=Person(
+                name=commit_data['author_name'],
+                email=commit_data['author_email'],
+                date=commit_data['author_date'],
+            ),
+            committer=Person(
+                name=commit_data['committer_name'],
+                email=commit_data['committer_email'],
+                date=commit_data['committer_date'],
+            ),
+            message=commit_data['message'],
+            parents=commit_data['parents'].split() if commit_data['parents'] else None,
+        )
 
         return commit
 
     @classmethod
-    def get_commit_list(cls, url: str, force_clone: bool=False) -> Dict[str, Dict[str, str]]:
+    def get_commit_list(cls, url: str, force_clone: bool=False) -> Dict[str, Commit]:
         """
         Gets a commit list from git log.
         If a local copy doesn't yet exist, it is fetched via git clone --bare.
@@ -74,7 +97,7 @@ class GitCliInput(CommitViewerInput):
 
         git_log_output = subprocess.check_output(
             ['git', 'log', '--full-history', '--no-decorate', '--oneline'],
-            cwd=cls._repo_directory(url)
+            cwd=cls._repo_directory(url),
         ).decode('utf-8').splitlines()
 
         commits = {}
@@ -82,14 +105,15 @@ class GitCliInput(CommitViewerInput):
             if not line:
                 continue
 
-            # maxsplit=1 to avoid splitting on the message itself
-            commit_hash, subject = line.split(maxsplit=1)
+            sha, subject = line.split(maxsplit=1)
 
+            # have to use git show because I didn't find a way to reliably split the
+            # output of git log by commit
             git_show_output = subprocess.check_output(
-                ['git', 'show', '-s', '--pretty=fuller', '--no-decorate', commit_hash],
-                cwd=cls._repo_directory(url)
+                ['git', 'show', '-s', f'--pretty={SHOW_FORMAT}', '--no-decorate', sha],
+                cwd=cls._repo_directory(url),
             ).decode('utf-8').splitlines()
 
-            commits[commit_hash] = cls._parse_git_show(git_show_output)
+            commits[sha] = cls._parse_git_show(git_show_output)
 
         return commits

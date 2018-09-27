@@ -1,15 +1,18 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import List
 
 
-@dataclass
+@dataclass(frozen=True)
 class Person:
     name: str
     email: str
     date: str
 
+    def __repr__(self):
+        return asdict(self).__repr__()
 
-@dataclass
+
+@dataclass(frozen=True)
 class Commit:
     sha: str
     tree: str
@@ -17,4 +20,4 @@ class Commit:
     committer: Person
     message: str
 
-    parents: List[str] = field(default=list)
+    parents: List[str] = field(default_factory=list)
