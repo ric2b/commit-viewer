@@ -1,4 +1,5 @@
 #!/usr/bin/python3.7
+from pprint import pprint
 from urllib.parse import urlparse
 import logging
 
@@ -39,5 +40,4 @@ if __name__ == '__main__':
             logging.warning('Failed to fetch from GitHub API, trying git CLI')
             commit_list = GitCliInput.get_commit_list(args.url)
 
-    for item in commit_list.items():
-        print(f'{item[0]} {item[1]}')
+    pprint(commit_list)
