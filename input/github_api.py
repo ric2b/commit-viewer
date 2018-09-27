@@ -1,3 +1,4 @@
+import logging
 from typing import Dict
 from urllib.parse import urlparse
 
@@ -20,18 +21,22 @@ class GitHubInput(CommitViewerInput):
 
         :param url: a url of a GitHub repo
         :param timeout: optional argument for the timeout on each request
-        :return: a dictionary with commit hashes as keys and messages as values
+        :return: a dictionary with commit hashes as keys and Commit objects as values
         """
         url_parts = urlparse(url)
 
         commits = {}
         next_page = f'{API_URL}{url_parts.path}/commits'
         while next_page:
+            logging.debug(f'Fetching page {next_page}')
             response = requests.get(next_page, params={'per_page': 100}, timeout=timeout)
+
             if response.status_code == 403:
                 raise LookupError(f'Likely rate limited. Message: {response.text}')
 
             for entry in response.json():
+                logging.debug(f"Parsing commit {entry['sha']}")
+
                 commit = Commit(
                     sha=entry['sha'],
                     tree=entry['commit']['tree']['sha'],

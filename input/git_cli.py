@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 import subprocess
@@ -46,7 +47,7 @@ class GitCliInput(CommitViewerInput):
         into a dictionary with the commit information and returns it.
 
         :param git_show_output: the output of git show, as a list of strings (the lines)
-        :return: a dictionary with the commit information
+        :return: a Commit object
         """
         if len(git_show_output) == 0:
             raise ValueError
@@ -88,13 +89,15 @@ class GitCliInput(CommitViewerInput):
         """
         Gets a commit list from git log.
         If a local copy doesn't yet exist, it is fetched via git clone --bare.
+
         :param url: the url of the repo on the remote
         :param force_clone: forces the
-        :return: a dictionary with commit hashes as keys and messages as values
+        :return: a dictionary with commit hashes as keys and Commit objects as values
         """
         if force_clone or not os.path.isdir(cls._repo_directory(url)):
             cls._fetch_repo(url)
 
+        logging.debug('Getting list of commits from git log')
         git_log_output = subprocess.check_output(
             ['git', 'log', '--full-history', '--no-decorate', '--oneline'],
             cwd=cls._repo_directory(url),
@@ -114,6 +117,7 @@ class GitCliInput(CommitViewerInput):
                 cwd=cls._repo_directory(url),
             ).decode('utf-8').splitlines()
 
+            logging.debug(f'Parsing commit {sha}')
             commits[sha] = cls._parse_git_show(git_show_output)
 
         return commits
