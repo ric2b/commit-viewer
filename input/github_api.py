@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 
 import requests
 
+from input.commit import Commit, Person
 from input.input_base_class import CommitViewerInput
 
 API_URL = 'https://api.github.com/repos'
@@ -10,7 +11,7 @@ API_URL = 'https://api.github.com/repos'
 
 class GitHubInput(CommitViewerInput):
     @classmethod
-    def get_commit_list(cls, url: str, timeout: int=120) -> Dict[str, str]:
+    def get_commit_list(cls, url: str, timeout: int=120) -> Dict[str, Commit]:
         """
         Fetches a repo's commit list via the GitHub API
 
@@ -30,8 +31,25 @@ class GitHubInput(CommitViewerInput):
             if response.status_code == 403:
                 raise LookupError(f'Likely rate limited. Message: {response.text}')
 
-            for commit in response.json():
-                commits[commit['sha']] = commit['commit']['message']
+            for entry in response.json():
+                commit = Commit(
+                    sha=entry['sha'],
+                    tree=entry['commit']['tree']['sha'],
+                    author=Person(
+                        name=entry['commit']['author']['name'],
+                        email=entry['commit']['author']['email'],
+                        date=entry['commit']['author']['date'],
+                    ),
+                    committer=Person(
+                        name=entry['commit']['committer']['name'],
+                        email=entry['commit']['committer']['email'],
+                        date=entry['commit']['committer']['date'],
+                    ),
+                    message=entry['commit']['message'],
+                    parents=[parent['sha'] for parent in entry['parents']],
+                )
+
+                commits[commit.sha] = commit
 
             if 'next' in response.links:
                 next_page = response.links['next']['url']
