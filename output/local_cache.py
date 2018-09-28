@@ -15,7 +15,7 @@ def persist_commit_list(url: str, commit_list: Dict[str, Commit]):
 
     with open(f'{CACHE_DIR}/{helpers.url_uuid(url)}.json', 'w') as file:
         # for unsupported classes, try to convert to dict
-        json.dump(commit_list, file, default=lambda obj: asdict(obj))
+        json.dump(commit_list, file, default=asdict)
 
 
 def get_from_cache(url: str) -> Dict[str, Commit]:

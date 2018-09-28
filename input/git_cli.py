@@ -104,7 +104,7 @@ class GitCliInput(CommitViewerInput):
             if not line:
                 continue
 
-            sha, subject = line.split(maxsplit=1)
+            sha = line.split(maxsplit=1)[0]
 
             # have to use git show because I didn't find a way to reliably split the
             # output of git log by commit
