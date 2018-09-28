@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 import requests
 
-from input.commit import Commit, Person
+from common.commit import Commit, Person
 from input.input_base_class import CommitViewerInput
 
 API_URL = 'https://api.github.com/repos'
@@ -54,7 +54,8 @@ class GitHubInput(CommitViewerInput):
                     parents=[parent['sha'] for parent in entry['parents']],
                 )
 
-                commits[commit.sha] = commit
+                # use the standard first 8 chars of the hash as commit ID
+                commits[commit.sha[:8]] = commit
 
             if 'next' in response.links:
                 next_page = response.links['next']['url']

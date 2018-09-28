@@ -2,10 +2,10 @@ import logging
 import os
 import shutil
 import subprocess
-import uuid
 from typing import Dict, List
 
-from input.commit import Commit, Person
+from common import helpers
+from common.commit import Commit, Person
 from input.input_base_class import CommitViewerInput
 
 BASE_REPO_DIR = '.commit_viewer/repos'
@@ -21,12 +21,8 @@ SHOW_FORMAT = 'sha %H%ntree %T%n' \
 
 class GitCliInput(CommitViewerInput):
     @staticmethod
-    def _url_uuid(url: str) -> uuid.UUID:
-        return uuid.uuid5(uuid.NAMESPACE_URL, url)
-
-    @classmethod
-    def _repo_directory(cls, url: str) -> str:
-        return f'{BASE_REPO_DIR}/{cls._url_uuid(url)}'
+    def _repo_directory(url: str) -> str:
+        return f'{BASE_REPO_DIR}/{helpers.url_uuid(url)}'
 
     @classmethod
     def _fetch_repo(cls, url: str, clean_dir: bool=False):

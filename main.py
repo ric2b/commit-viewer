@@ -1,10 +1,12 @@
 #!/usr/bin/python3.7
+from dataclasses import asdict
 from pprint import pprint
 from urllib.parse import urlparse
 import logging
 
 from input.git_cli import GitCliInput
 from input.github_api import GitHubInput
+from output.local_cache import get_from_cache, persist_commit_list
 
 if __name__ == '__main__':
     import argparse
@@ -16,6 +18,7 @@ if __name__ == '__main__':
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'])
     parser.add_argument('--timeout', type=int, default=120, help='request timeout (sec)')
     parser.add_argument('--input', type=str, help='force input', choices=['github', 'git'])
+    parser.add_argument('--skip_cache', action='store_true', help='skips the cache')
     args = parser.parse_args()
 
     logging.basicConfig(level=args.log)
@@ -23,6 +26,15 @@ if __name__ == '__main__':
     url_parts = urlparse(args.url)
     if not all([url_parts.scheme, url_parts.netloc, url_parts.path]):
         raise ValueError('Invalid url, please double check it.')
+
+    # check cache first, unless disabled
+    if not args.skip_cache:
+        logging.debug('Checking local cache')
+        try:
+            pprint(get_from_cache(args.url))
+            exit()
+        except FileNotFoundError:
+            logging.info('The given url is not cached')
 
     if args.input == 'github':
         logging.info('Fetching via GitHub API')
@@ -40,4 +52,8 @@ if __name__ == '__main__':
             logging.warning('Failed to fetch from GitHub API, trying git CLI')
             commit_list = GitCliInput.get_commit_list(args.url)
 
-    pprint(commit_list)
+    # convert commit objects to dict so the pretty print looks nice
+    pprint({sha: asdict(commit) for sha, commit in commit_list.items()})
+
+    logging.debug('Persisting the commit list')
+    persist_commit_list(args.url, commit_list)

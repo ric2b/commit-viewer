@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from typing import List
 
 
@@ -7,9 +7,6 @@ class Person:
     name: str
     email: str
     date: str
-
-    def __repr__(self):
-        return asdict(self).__repr__()
 
 
 @dataclass(frozen=True)
