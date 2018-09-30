@@ -1,5 +1,5 @@
 import logging
-from typing import Dict
+from typing import Dict, List, Any
 from urllib.parse import urlparse
 
 import requests
@@ -12,28 +12,35 @@ API_URL = 'https://api.github.com/repos'
 
 class GitHubInput(CommitViewerInput):
     @staticmethod
-    def _parse_page_content(json_content: Dict) -> Dict[str, Commit]:
+    def _parse_page_content(json_content: List[Dict[str, Any]]) -> Dict[str, Commit]:
+        if not isinstance(json_content, List):
+            raise TypeError
+
         commits = {}
 
         for entry in json_content:
             logging.debug(f"Parsing commit {entry['sha']}")
 
-            commit = Commit(
-                sha=entry['sha'],
-                tree=entry['commit']['tree']['sha'],
-                author=Person(
-                    name=entry['commit']['author']['name'],
-                    email=entry['commit']['author']['email'],
-                    date=entry['commit']['author']['date'],
-                ),
-                committer=Person(
-                    name=entry['commit']['committer']['name'],
-                    email=entry['commit']['committer']['email'],
-                    date=entry['commit']['committer']['date'],
-                ),
-                message=entry['commit']['message'],
-                parents=[parent['sha'] for parent in entry['parents']],
-            )
+            try:
+                commit = Commit(
+                    sha=entry['sha'],
+                    tree=entry['commit']['tree']['sha'],
+                    author=Person(
+                        name=entry['commit']['author']['name'],
+                        email=entry['commit']['author']['email'],
+                        date=entry['commit']['author']['date'],
+                    ),
+                    committer=Person(
+                        name=entry['commit']['committer']['name'],
+                        email=entry['commit']['committer']['email'],
+                        date=entry['commit']['committer']['date'],
+                    ),
+                    message=entry['commit']['message'],
+                    parents=[parent['sha'] for parent in entry['parents']],
+                )
+
+            except KeyError as e:
+                raise ValueError(f"Failed to load commit due to missing field: {e}")
 
             # use the standard first 8 chars of the hash as commit ID
             commits[commit.sha[:8]] = commit
