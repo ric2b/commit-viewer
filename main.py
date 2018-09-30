@@ -1,9 +1,8 @@
 #!/usr/bin/python3.7
-from dataclasses import asdict
-from pprint import pprint
-from urllib.parse import urlparse
 import logging
+from urllib.parse import urlparse
 
+from common.commit import pprint_commit_list
 from input.git_cli import GitCliInput
 from input.github_api import GitHubInput
 from output.local_cache import get_from_cache, persist_commit_list
@@ -31,7 +30,9 @@ if __name__ == '__main__':
     if not args.skip_cache:
         logging.debug('Checking local cache')
         try:
-            pprint(get_from_cache(args.url))
+            commit_list = get_from_cache(args.url)
+            logging.info('Commit list is cached')
+            pprint_commit_list(commit_list)
             exit()
         except FileNotFoundError:
             logging.info('The given url is not cached')
@@ -53,7 +54,7 @@ if __name__ == '__main__':
             commit_list = GitCliInput.get_commit_list(args.url)
 
     # convert commit objects to dict so the pretty print looks nice
-    pprint({sha: asdict(commit) for sha, commit in commit_list.items()})
+    pprint_commit_list(commit_list)
 
     logging.debug('Persisting the commit list')
     persist_commit_list(args.url, commit_list)

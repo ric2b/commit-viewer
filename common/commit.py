@@ -1,5 +1,6 @@
-from dataclasses import dataclass, field
-from typing import List
+from dataclasses import dataclass, field, asdict
+from pprint import pprint
+from typing import List, Dict
 
 
 @dataclass(frozen=True)
@@ -18,3 +19,7 @@ class Commit:
     message: str
 
     parents: List[str] = field(default_factory=list)
+
+
+def pprint_commit_list(commit_list: Dict[str, Commit]):
+    pprint({sha: asdict(commit) for sha, commit in commit_list.items()})

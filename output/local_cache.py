@@ -20,4 +20,6 @@ def persist_commit_list(url: str, commit_list: Dict[str, Commit]):
 
 def get_from_cache(url: str) -> Dict[str, Commit]:
     with open(f'{CACHE_DIR}/{helpers.url_uuid(url)}.json', 'r') as file:
-        return json.load(file)
+        json_cache = json.load(file)
+
+    return {sha: Commit(**commit) for sha, commit in json_cache.items()}
