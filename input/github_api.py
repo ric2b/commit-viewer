@@ -11,6 +11,35 @@ API_URL = 'https://api.github.com/repos'
 
 
 class GitHubInput(CommitViewerInput):
+    @staticmethod
+    def _parse_page_content(json_content: Dict) -> Dict[str, Commit]:
+        commits = {}
+
+        for entry in json_content:
+            logging.debug(f"Parsing commit {entry['sha']}")
+
+            commit = Commit(
+                sha=entry['sha'],
+                tree=entry['commit']['tree']['sha'],
+                author=Person(
+                    name=entry['commit']['author']['name'],
+                    email=entry['commit']['author']['email'],
+                    date=entry['commit']['author']['date'],
+                ),
+                committer=Person(
+                    name=entry['commit']['committer']['name'],
+                    email=entry['commit']['committer']['email'],
+                    date=entry['commit']['committer']['date'],
+                ),
+                message=entry['commit']['message'],
+                parents=[parent['sha'] for parent in entry['parents']],
+            )
+
+            # use the standard first 8 chars of the hash as commit ID
+            commits[commit.sha[:8]] = commit
+
+        return commits
+
     @classmethod
     def get_commit_list(cls, url: str, timeout: int=120) -> Dict[str, Commit]:
         """
@@ -34,28 +63,7 @@ class GitHubInput(CommitViewerInput):
             if response.status_code == 403:
                 raise LookupError(f'Likely rate limited. Message: {response.text}')
 
-            for entry in response.json():
-                logging.debug(f"Parsing commit {entry['sha']}")
-
-                commit = Commit(
-                    sha=entry['sha'],
-                    tree=entry['commit']['tree']['sha'],
-                    author=Person(
-                        name=entry['commit']['author']['name'],
-                        email=entry['commit']['author']['email'],
-                        date=entry['commit']['author']['date'],
-                    ),
-                    committer=Person(
-                        name=entry['commit']['committer']['name'],
-                        email=entry['commit']['committer']['email'],
-                        date=entry['commit']['committer']['date'],
-                    ),
-                    message=entry['commit']['message'],
-                    parents=[parent['sha'] for parent in entry['parents']],
-                )
-
-                # use the standard first 8 chars of the hash as commit ID
-                commits[commit.sha[:8]] = commit
+            commits.update(cls._parse_page_content(response.json()))
 
             if 'next' in response.links:
                 next_page = response.links['next']['url']
