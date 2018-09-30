@@ -45,6 +45,9 @@ class GitCliInput(CommitViewerInput):
         :param git_show_output: the output of git show, as a list of strings (the lines)
         :return: a Commit object
         """
+        if not isinstance(git_show_output, List):
+            raise TypeError
+
         if len(git_show_output) == 0:
             raise ValueError
 
@@ -57,6 +60,9 @@ class GitCliInput(CommitViewerInput):
 
             line_parts = line.split(maxsplit=1)
             commit_data[line_parts[0]] = line_parts[1] if len(line_parts) > 1 else ''
+
+        if not break_line:
+            raise ValueError('Invalid format, missing empty line before message')
 
         message_lines = [line.lstrip() for line in git_show_output[break_line + 1:]]
         commit_data['message'] = '\n'.join(message_lines)
